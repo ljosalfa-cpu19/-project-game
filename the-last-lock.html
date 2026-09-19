@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>For You — Midnight Rose</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  /* ============================================================
+     THE LAST LOCK — page-specific styles only.
+     Uses the palette + fonts already defined in style.css.
+  ============================================================ */
+  html, body { height: 100%; }
+  body[data-page="the-last-lock"] {
+    overflow: hidden;
+    background: var(--obsidian);
+  }
+
+  .finale-scene {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  #starfield-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 1.4s var(--ease);
+  }
+  #starfield-canvas.visible { opacity: 1; }
+
+  /* ---------- intro ---------- */
+  .finale-intro {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2em;
+    text-align: center;
+    padding: 6vh 6vw;
+    background: var(--obsidian);
+    transition: opacity 1.1s var(--ease);
+  }
+  .finale-intro.hidden { opacity: 0; pointer-events: none; }
+  .finale-intro p {
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--pearl);
+    font-size: clamp(1.2rem, 3vw, 1.6rem);
+    margin: 0;
+  }
+  #begin-btn { opacity: 0; animation: softIn 1.2s var(--ease) 1.4s forwards; }
+  @keyframes softIn { to { opacity: 1; } }
+
+  /* ---------- memory stars ---------- */
+  #memory-stars {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 1.2s var(--ease);
+  }
+  #memory-stars.visible { opacity: 1; }
+  #memory-stars.fading { opacity: 0; }
+
+  .memory-star {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: top 1.5s var(--ease), left 1.5s var(--ease);
+  }
+  .star-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--champagne);
+    box-shadow: 0 0 10px 2px rgba(214,179,106,0.55);
+    animation: starPulse 2.6s ease-in-out infinite;
+  }
+  .memory-star.visited .star-dot {
+    animation: none;
+    box-shadow: 0 0 16px 5px rgba(214,179,106,0.85);
+    background: var(--ivory);
+  }
+  @keyframes starPulse {
+    0%, 100% { opacity: 0.55; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+
+  /* ---------- memory overlay ---------- */
+  .memory-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6vh 6vw;
+    background: rgba(8,9,16,0.86);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s var(--ease);
+  }
+  .memory-overlay.visible { opacity: 1; pointer-events: all; }
+  .memory-overlay-inner { max-width: 460px; text-align: center; }
+  .memory-overlay-date {
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    color: var(--dusty-rose);
+  }
+  .memory-overlay-title {
+    font-family: var(--font-script);
+    color: var(--ivory);
+    text-shadow: var(--glow-gold);
+    font-size: clamp(2.2rem, 6vw, 3.2rem);
+    margin: 0.2em 0 0.5em;
+  }
+  .memory-overlay-text {
+    font-family: var(--font-serif);
+    color: var(--pearl);
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+  .memory-overlay-hint {
+    margin-top: 2em;
+    font-family: var(--font-sans);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--mauve);
+  }
+
+  /* ---------- handwriting reveal ---------- */
+  .handwriting-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 25;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6vh 8vw;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.2s var(--ease);
+  }
+  .handwriting-layer.visible { opacity: 1; }
+  .handwriting-text {
+    font-family: var(--font-script);
+    color: var(--ivory);
+    text-shadow: var(--glow-gold);
+    font-size: clamp(2.4rem, 7vw, 4.2rem);
+    line-height: 1.2;
+    margin: 0;
+  }
+  .handwriting-cursor {
+    display: inline-block;
+    width: 2px;
+    background: var(--champagne);
+    margin-left: 2px;
+    animation: caretBlink 0.9s steps(1) infinite;
+  }
+  @keyframes caretBlink { 50% { opacity: 0; } }
+
+  /* ---------- ignition ---------- */
+  .ignition-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .ignition-core {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #FFE9B8 0%, var(--champagne) 30%, var(--dark-rose) 65%, var(--burgundy) 100%);
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  .ignition-layer.burst .ignition-core {
+    animation: igniteBurst 2s var(--ease) forwards;
+  }
+  @keyframes igniteBurst {
+    0% { opacity: 0; transform: scale(0.2); }
+    35% { opacity: 1; transform: scale(2.4); }
+    100% { opacity: 0; transform: scale(9); }
+  }
+
+  /* ---------- final frame ---------- */
+  .final-frame {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.1em;
+    text-align: center;
+    padding: 6vh 8vw;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.6s var(--ease);
+  }
+  .final-frame.visible { opacity: 1; pointer-events: all; }
+  .final-line {
+    font-family: var(--font-script);
+    color: var(--ivory);
+    text-shadow: var(--glow-gold);
+    font-size: clamp(2rem, 6vw, 3.4rem);
+    margin: 0;
+  }
+  .final-date {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    color: var(--dusty-rose);
+    margin: 0;
+  }
+  .final-names {
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--mauve);
+    font-size: 1.1rem;
+    margin: 0 0 0.6em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .memory-star, #memory-stars, .memory-overlay, .handwriting-layer, .final-frame, #starfield-canvas {
+      transition-duration: 0.3s !important;
+    }
+    .star-dot { animation: none !important; }
+    .ignition-core { animation-duration: 0.6s !important; }
+  }
+</style>
+</head>
+<body data-page="the-last-lock">
+
+<main class="finale-scene" id="scene">
+  <canvas id="starfield-canvas" aria-hidden="true"></canvas>
+
+  <!-- Opening line -->
+  <div class="finale-intro" id="finale-intro">
+    <p>There's one more thing.</p>
+    <button class="btn btn-ghost" id="begin-btn">tap to begin</button>
+  </div>
+
+  <!-- The four memory stars (positions + content set by JS below) -->
+  <div id="memory-stars" aria-hidden="true"></div>
+
+  <!-- Memory reveal -->
+  <div class="memory-overlay" id="memory-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="memory-overlay-inner">
+      <p class="memory-overlay-date" id="memory-overlay-date"></p>
+      <p class="memory-overlay-title" id="memory-overlay-title"></p>
+      <p class="memory-overlay-text" id="memory-overlay-text"></p>
+      <p class="memory-overlay-hint">tap anywhere to continue</p>
+    </div>
+  </div>
+
+  <!-- Handwriting reveal -->
+  <div class="handwriting-layer" id="handwriting-layer" aria-hidden="true">
+    <p class="handwriting-text" id="handwriting-text"></p>
+  </div>
+
+  <!-- Ignition burst -->
+  <div class="ignition-layer" id="ignition-layer" aria-hidden="true">
+    <div class="ignition-core"></div>
+  </div>
+
+  <!-- Final still frame -->
+  <div class="final-frame" id="final-frame" aria-hidden="true">
+    <!-- ✏️ EDIT ME: change the final line, date, and names below (also set in the JS data near the bottom) -->
+    <p class="final-line" id="final-line"></p>
+    <p class="final-date" id="final-date"></p>
+    <p class="final-names" id="final-names"></p>
+    <button class="btn" id="replay-voice-btn">Hear it again&nbsp;♡</button>
+  </div>
+</main>
+
+<button id="music-toggle" aria-label="Play music" data-playing="false">♪̸</button>
+<!-- ✏️ EDIT ME: point at your own background song -->
+<audio id="bg-music" loop src="song.mp3" preload="auto"></audio>
+<!-- ✏️ EDIT ME: point at your own ~20-30 second recorded voice clip -->
+<audio id="voice-clip" src="voice.mp3" preload="auto"></audio>
+
+<script>
+(function () {
+  "use strict";
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ============================================================
+     ✏️ EDIT ME — the four memories, the final line, and the
+     names/date on the closing frame. Positions are percentages
+     of the screen (top/left), kept away from dead-center so
+     nothing overlaps the handwriting reveal later.
+  ============================================================ */
+  const memories = [
+    {
+      date: "April 13, 2026",
+      title: "The day we met",
+      text: "A random encounter that was never going to be random. I don't think either of us knew it yet, but that was the beginning of everything.",
+      pos: { top: "20%", left: "24%" }
+    },
+    {
+      date: "May 11, 2026",
+      title: "The day we confessed",
+      text: "Neither of us wanted to say it first, and somehow we both said it anyway. I've never been more sure of anything since.",
+      pos: { top: "26%", left: "72%" }
+    },
+    {
+      date: "July 11, 2026",
+      title: "The day I courted you",
+      text: "Not because I was forced, not because it was temporary — because I already knew I wanted the long run, with you.",
+      pos: { top: "66%", left: "22%" }
+    },
+    {
+      date: "Today",
+      title: "Your birthday",
+      text: "The reason all of this exists. Happy birthday, my love — here's the last thing I made for you.",
+      pos: { top: "62%", left: "76%" }
+    }
+  ];
+
+  const finalLine = "I choose you, today and always.";
+  const finalDate = "July 11, 2026";
+  const finalNames = "Dani & Alyy";
+
+  /* ============================================================
+     Element refs
+  ============================================================ */
+  const canvas = document.getElementById("starfield-canvas");
+  const intro = document.getElementById("finale-intro");
+  const beginBtn = document.getElementById("begin-btn");
+  const starsLayer = document.getElementById("memory-stars");
+  const overlay = document.getElementById("memory-overlay");
+  const overlayDate = document.getElementById("memory-overlay-date");
+  const overlayTitle = document.getElementById("memory-overlay-title");
+  const overlayText = document.getElementById("memory-overlay-text");
+  const handwritingLayer = document.getElementById("handwriting-layer");
+  const handwritingText = document.getElementById("handwriting-text");
+  const ignitionLayer = document.getElementById("ignition-layer");
+  const finalFrame = document.getElementById("final-frame");
+  const finalLineEl = document.getElementById("final-line");
+  const finalDateEl = document.getElementById("final-date");
+  const finalNamesEl = document.getElementById("final-names");
+  const replayBtn = document.getElementById("replay-voice-btn");
+  const bgMusic = document.getElementById("bg-music");
+  const voiceClip = document.getElementById("voice-clip");
+  const musicToggle = document.getElementById("music-toggle");
+
+  let visitedCount = 0;
+  let openOverlayIndex = null;
+
+  /* ============================================================
+     Background music — same convention as the rest of the site.
+  ============================================================ */
+  function setMusicIcon(playing) {
+    musicToggle.dataset.playing = playing ? "true" : "false";
+    musicToggle.textContent = playing ? "♪" : "♪̸";
+    musicToggle.setAttribute("aria-label", playing ? "Pause music" : "Play music");
+  }
+  function tryAutoplay() {
+    if (sessionStorage.getItem("midnightRoseMusicPlaying") === "false") return;
+    bgMusic.play().then(() => setMusicIcon(true)).catch(() => setMusicIcon(false));
+  }
+  musicToggle.addEventListener("click", function () {
+    if (bgMusic.paused) {
+      bgMusic.play().then(() => setMusicIcon(true)).catch(() => {});
+      sessionStorage.setItem("midnightRoseMusicPlaying", "true");
+    } else {
+      bgMusic.pause();
+      setMusicIcon(false);
+      sessionStorage.setItem("midnightRoseMusicPlaying", "false");
+    }
+  });
+  function fadeAudio(audio, to, duration) {
+    const from = audio.volume;
+    const start = performance.now();
+    function step(t) {
+      const p = Math.min(1, (t - start) / duration);
+      audio.volume = from + (to - from) * p;
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  tryAutoplay();
+
+  /* ============================================================
+     Ambient starfield (canvas)
+  ============================================================ */
+  const ctx = canvas.getContext("2d");
+  let stars = [];
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  function seedStars() {
+    const count = window.innerWidth < 640 ? 90 : 160;
+    stars = [];
+    for (let i = 0; i < count; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.2 + 0.4,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.4 + Math.random() * 0.6
+      });
+    }
+  }
+  resizeCanvas();
+  seedStars();
+  window.addEventListener("resize", function () {
+    resizeCanvas();
+    seedStars();
+  });
+
+  let animatingStars = true;
+  function drawStars(t) {
+    if (!animatingStars) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(function (s) {
+      const alpha = prefersReducedMotion
+        ? 0.5
+        : 0.25 + 0.55 * Math.abs(Math.sin((t / 1600) * s.speed + s.phase));
+      ctx.beginPath();
+      ctx.fillStyle = "rgba(248,244,239," + alpha + ")";
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    requestAnimationFrame(drawStars);
+  }
+  requestAnimationFrame(drawStars);
+
+  /* ============================================================
+     Memory stars — build + wire up
+  ============================================================ */
+  memories.forEach(function (m, i) {
+    const btn = document.createElement("button");
+    btn.className = "memory-star";
+    btn.style.top = m.pos.top;
+    btn.style.left = m.pos.left;
+    btn.setAttribute("aria-label", "Memory " + (i + 1) + " of " + memories.length);
+    btn.innerHTML = '<span class="star-dot" aria-hidden="true"></span>';
+    btn.addEventListener("click", function () { openMemory(i); });
+    starsLayer.appendChild(btn);
+  });
+  const starEls = Array.from(starsLayer.querySelectorAll(".memory-star"));
+
+  function openMemory(i) {
+    openOverlayIndex = i;
+    const m = memories[i];
+    overlayDate.textContent = m.date;
+    overlayTitle.textContent = m.title;
+    overlayText.textContent = m.text;
+    overlay.classList.add("visible");
+    overlay.setAttribute("aria-hidden", "false");
+  }
+  overlay.addEventListener("click", closeMemory);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && overlay.classList.contains("visible")) closeMemory();
+  });
+  function closeMemory() {
+    if (openOverlayIndex === null) return;
+    overlay.classList.remove("visible");
+    overlay.setAttribute("aria-hidden", "true");
+    const star = starEls[openOverlayIndex];
+    if (!star.classList.contains("visited")) {
+      star.classList.add("visited");
+      visitedCount++;
+    }
+    openOverlayIndex = null;
+    if (visitedCount === memories.length) {
+      setTimeout(beginConvergence, 700);
+    }
+  }
+
+  /* ============================================================
+     Sequence: begin -> stars -> convergence -> handwriting ->
+     ignition -> final frame
+  ============================================================ */
+  beginBtn.addEventListener("click", function () {
+    intro.classList.add("hidden");
+    canvas.classList.add("visible");
+    setTimeout(function () {
+      starsLayer.classList.add("visible");
+    }, prefersReducedMotion ? 100 : 600);
+  });
+
+  function beginConvergence() {
+    if (prefersReducedMotion) {
+      starsLayer.classList.add("fading");
+      animatingStars = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      revealHandwriting();
+      return;
+    }
+    starEls.forEach(function (star) {
+      star.style.top = "50%";
+      star.style.left = "50%";
+    });
+    setTimeout(function () {
+      starsLayer.classList.add("fading");
+      canvas.classList.remove("visible");
+      animatingStars = false;
+      revealHandwriting();
+    }, 1500);
+  }
+
+  function revealHandwriting() {
+    handwritingLayer.classList.add("visible");
+    handwritingLayer.setAttribute("aria-hidden", "false");
+
+    if (prefersReducedMotion) {
+      handwritingText.textContent = finalLine;
+      setTimeout(igniteFinale, 900);
+      return;
+    }
+
+    handwritingText.innerHTML = "";
+    const cursor = document.createElement("span");
+    cursor.className = "handwriting-cursor";
+    handwritingText.appendChild(cursor);
+
+    let i = 0;
+    function typeStep() {
+      if (i >= finalLine.length) {
+        cursor.remove();
+        setTimeout(igniteFinale, 900);
+        return;
+      }
+      cursor.insertAdjacentText("beforebegin", finalLine[i]);
+      i++;
+      setTimeout(typeStep, 55 + Math.random() * 60);
+    }
+    setTimeout(typeStep, 400);
+  }
+
+  function igniteFinale() {
+    fadeAudio(bgMusic, 0.1, 1500);
+    ignitionLayer.classList.add("burst");
+    ignitionLayer.setAttribute("aria-hidden", "false");
+    setTimeout(function () {
+      handwritingLayer.classList.remove("visible");
+      showFinalFrame();
+    }, prefersReducedMotion ? 400 : 1500);
+  }
+
+  function showFinalFrame() {
+    finalLineEl.textContent = finalLine;
+    finalDateEl.textContent = finalDate;
+    finalNamesEl.textContent = finalNames;
+    finalFrame.classList.add("visible");
+    finalFrame.setAttribute("aria-hidden", "false");
+  }
+
+  replayBtn.addEventListener("click", function () {
+    voiceClip.currentTime = 0;
+    voiceClip.play().catch(function () {});
+  });
+})();
+</script>
+</body>
+</html>
